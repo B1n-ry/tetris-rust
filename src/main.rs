@@ -1,47 +1,43 @@
+use draw::to_coord;
+use game::TetrisGame;
+use piston_window::{clear, types::Color, Button, Key, PistonWindow, PressEvent, UpdateEvent, WindowSettings};
+
+extern crate rand;
 extern crate piston_window;
 
-use piston_window::{grid::Grid, *};
+mod game;
+mod draw;
 
-const BLOCK_SIZE: f64 = 16.0;
+const BACK_COLOR: Color = [0.0, 0.0, 0.0, 1.0];
 
 fn main() {
-    let mut window: PistonWindow =
-        WindowSettings::new("Hello Piston!", [640, 480])
-        .exit_on_esc(true).build().unwrap();
+    let (width, height) = (10, 20);
+
+    let mut window: PistonWindow = WindowSettings::new("Tetris", [to_coord(width) as u32, to_coord(height) as u32])
+        .exit_on_esc(true)
+        .build()
+        .unwrap();
+
+    let mut game = TetrisGame::new(width, height);
     while let Some(event) = window.next() {
-        window.draw_2d(&event, |context, graphics, _device| {
-            clear([1.0; 4], graphics);
-            rectangle([1.0, 0.0, 0.0, 1.0], // red
-                      [0.0, 0.0, 100.0, 100.0],
-                      context.transform,
-                      graphics);
-        });
-    }
-}
-
-#[derive(Clone)]
-enum TetrisBlock {
-    L,
-    T,
-    S,
-    Z,
-    LINE,
-    O,
-    EMPTY,
-}
-
-struct Level {
-    grid: Grid,
-}
-
-impl Level {
-    pub fn new(width: u32, height: u32) -> Self {
-        Level {
-            grid: Grid {
-                rows: height,
-                cols: width,
-                units: BLOCK_SIZE,
-            },
+        if let Some(Button::Keyboard(key)) = event.press_args() {
+            match key {
+                Key::Left => game.move_falling_horizontal(-1),
+                Key::Right => game.move_falling_horizontal(1),
+                Key::Down => game.move_falling_down(),
+                Key::Q => game.rotate_falling(false),
+                Key::E => game.rotate_falling(true),
+                Key::Space => game.smash_down_falling(),
+                _ => (),
+            };
         }
+        window.draw_2d(&event, |c, g, _| {
+            clear(BACK_COLOR, g);
+            game.render(&c, g);
+        });
+
+        event.update(|arg| {
+            game.update(arg.dt);
+        });
     }
 }
